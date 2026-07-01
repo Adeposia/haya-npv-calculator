@@ -219,10 +219,10 @@ with col2:
                     "Property": [property_type],
                     "Value Expected (NGN)": [round(results['realizable_value'])]
                 })
-                if os.path.exists("haya_leads.csv"):
-                    new_lead.to_csv("haya_leads.csv", mode="a", header=False, index=False)
+                if os.path.exists("haya_leads_v2.csv"):
+                    new_lead.to_csv("haya_leads_v2.csv", mode="a", header=False, index=False)
                 else:
-                    new_lead.to_csv("haya_leads.csv", index=False)
+                    new_lead.to_csv("haya_leads_v2.csv", index=False)
 
                 st.success("Success! Our concierge team will email you within 24 hours.")
                 st.balloons()
@@ -234,7 +234,7 @@ with col2:
 # ============================================================
 st.divider()
 with st.expander("🔒 Admin Only: View Captured Leads"):
-    if os.path.exists("haya_leads.csv"):
-        st.dataframe(pd.read_csv("haya_leads.csv"))
+    if os.path.exists("haya_leads_v2.csv"):
+        st.dataframe(pd.read_csv("haya_leads_v2.csv"))
     else:
         st.write("No leads captured yet.")
