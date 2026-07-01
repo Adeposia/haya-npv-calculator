@@ -35,13 +35,14 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# HEADER
+# BRANDED HEADER BANNER
 # ============================================================
 st.markdown(f"""
-<div style="background-color:{HAYA_BLACK}; padding:22px 28px; border-radius:14px;
-    border-left:10px solid {HAYA_YELLOW}; margin-bottom:22px;">
-    <h1 style="color:{HAYA_YELLOW}; margin:0; font-size:3.5rem;">HAYA</h1>
-    <p style="color:#FFFFFF; margin:4px 0 0 0; font-size:1.05rem;">
+<div style="background-color:{HAYA_BLACK}; padding:40px 28px; 
+    border-radius:14px; border-left:10px solid {HAYA_YELLOW}; 
+    margin-bottom:22px; text-align: center;">
+    <h1 style="color:{HAYA_YELLOW}; margin:0; font-size:3.5rem;">🚌 HAYA</h1>
+    <p style="color:#FFFFFF; margin:10px 0 0 0; font-size:1.3rem;">
         Moving out early? Turn your unexpired rent into cash today.
     </p>
 </div>
@@ -157,7 +158,7 @@ with col2:
 
     st.divider()
 
-    st.subheader("🚀 Ready to Cash Out?")
+    st.subheader("Ready to Cash Out?")
     location_label = selected_ward if selected_ward else "your area"
     st.info(f"**High Demand Alert:** We currently have corporate buyers looking "
             f"for **{property_type}** apartments in **{location_label}**.")
