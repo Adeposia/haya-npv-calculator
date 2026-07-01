@@ -56,7 +56,7 @@ st.markdown(f"""
 <div style="background-color:{HAYA_BLACK}; padding:40px 28px; 
     border-radius:14px; border-left:10px solid {HAYA_YELLOW}; 
     margin-bottom:22px; text-align: center;">
-    <h1 style="color:{HAYA_YELLOW}; margin:0; font-size:3.5rem;">🚌 HAYA</h1>
+    <h1 style="color:{HAYA_YELLOW}; margin:0; font-size:3.5rem;">HAYA</h1>
     <p style="color:#FFFFFF; margin:10px 0 0 0; font-size:1.3rem;">
         Moving out early? Turn your unexpired rent into cash today.
     </p>
