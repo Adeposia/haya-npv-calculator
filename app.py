@@ -82,12 +82,48 @@ def load_wards():
 wards_geojson = load_wards()
 
 # ============================================================
-# STEP 1: INTERACTIVE MAP
+# WARD HELPERS (names for the dropdown + code lookup)
+# ============================================================
+@st.cache_data
+def get_ward_names(_geojson):
+    names = {
+        f["properties"].get("ward_name")
+        for f in _geojson["features"]
+        if f["properties"].get("ward_name")
+    }
+    return sorted(names)
+
+@st.cache_data
+def build_ward_lookup(_geojson):
+    lookup = {}
+    for f in _geojson["features"]:
+        p = f["properties"]
+        name = p.get("ward_name")
+        if name:
+            lookup[name] = {"ward_code": p.get("ward_code"),
+                            "lga_code": p.get("lga_code")}
+    return lookup
+
+ward_names = get_ward_names(wards_geojson)
+ward_lookup = build_ward_lookup(wards_geojson)
+
+PLACEHOLDER = "— Select your ward —"
+
+# Single source of truth for ward selection = the dropdown's key
+if "ward_choice" not in st.session_state:
+    st.session_state["ward_choice"] = PLACEHOLDER
+
+# ============================================================
+# STEP 1: WHERE IS YOUR PROPERTY  (map + dropdown, kept in sync)
 # ============================================================
 st.header("1. Where is your property?")
-st.markdown("**Click your ward on the map below** to get started.")
+st.markdown("**Click your ward on the map**, or pick it from the list below "
+            "(easier on your phone 📱).")
 
-selected_ward = st.session_state.get("selected_ward")
+# Current selection (None until a real ward is chosen)
+selected_ward = st.session_state["ward_choice"]
+if selected_ward == PLACEHOLDER:
+    selected_ward = None
 
 def style_function(feature):
     name = feature["properties"].get("ward_name")
@@ -108,24 +144,36 @@ folium.GeoJson(
 
 map_data = st_folium(m, height=480, use_container_width=True, key="ward_map")
 
+# --- Handle a NEW map click (each physical click has unique coords) ---
 clicked = map_data.get("last_active_drawing")
-if clicked:
-    props = clicked.get("properties", {})
-    new_ward = props.get("ward_name")
-    if new_ward and new_ward != st.session_state.get("selected_ward"):
-        st.session_state["selected_ward"] = new_ward
-        st.session_state["selected_ward_code"] = props.get("ward_code")
-        st.session_state["selected_lga"] = props.get("lga_code")
-        pt = map_data.get("last_clicked") or {}
-        st.session_state["clicked_lat"] = pt.get("lat")
-        st.session_state["clicked_lng"] = pt.get("lng")
-        st.rerun()
+last_pt = map_data.get("last_clicked")
+if clicked and last_pt:
+    click_id = (last_pt.get("lat"), last_pt.get("lng"))
+    if click_id != st.session_state.get("_last_click_id"):
+        st.session_state["_last_click_id"] = click_id
+        new_ward = clicked.get("properties", {}).get("ward_name")
+        if new_ward:
+            st.session_state["ward_choice"] = new_ward          # sync -> dropdown
+            st.session_state["clicked_lat"] = last_pt.get("lat")
+            st.session_state["clicked_lng"] = last_pt.get("lng")
+            st.session_state["_coord_ward"] = new_ward
+            st.rerun()
 
-selected_ward = st.session_state.get("selected_ward")
+# --- The dropdown (its key IS the source of truth) ---
+options = [PLACEHOLDER] + ward_names
+st.selectbox("Or select your ward from the list:", options, key="ward_choice")
+
+# Re-read after any change
+selected_ward = st.session_state["ward_choice"]
+if selected_ward == PLACEHOLDER:
+    selected_ward = None
+
 if selected_ward:
-    st.success(f"📍 Selected ward: **{selected_ward}** (LGA code: {st.session_state.get('selected_lga')})")
+    codes = ward_lookup.get(selected_ward, {})
+    st.success(f"📍 Selected ward: **{selected_ward}** "
+               f"(LGA code: {codes.get('lga_code')})")
 else:
-    st.warning("👆 No ward selected yet — click your area on the map.")
+    st.warning("👆 No ward selected yet — tap the map or use the list.")
 
 st.divider()
 
@@ -151,10 +199,82 @@ with col2:
     st.header("3. Market Valuation")
     results = calculate_npv(months_left, current_rent_annual,
                             discount_rate_annual, growth_rate_annual, friction_pct)
-    st.metric(label="Total Realizable Value (After Fees)",
-              value=f"₦ {results['realizable_value']:,.0f}")
-    st.markdown(f"**Gross Market Value:** ₦ {results['gross_pv']:,.0f}  |  "
-                f"**Friction Fees:** – ₦ {results['friction_cost']:,.0f}")
+
+    unlocked = st.session_state.get("unlocked", False)
+
+    if unlocked:
+        st.metric(label="Total Realizable Value (After Fees)",
+                  value=f"₦ {results['realizable_value']:,.0f}")
+        st.markdown(f"**Gross Market Value:** ₦ {results['gross_pv']:,.0f}  |  "
+                    f"**Friction Fees:** – ₦ {results['friction_cost']:,.0f}")
+    else:
+        # Locked teaser — the number stays hidden until we capture an email
+        st.markdown(f"""
+        <div style="background:{HAYA_BLACK}; color:#FFFFFF; padding:26px;
+             border-radius:14px; text-align:center; border:2px dashed {HAYA_YELLOW};">
+            <div style="font-size:2.4rem;">🔒</div>
+            <div style="font-size:1.15rem; font-weight:700; color:{HAYA_YELLOW};">
+                Your valuation is ready
+            </div>
+            <div style="margin-top:6px;">
+                Enter your email below to reveal how much your unexpired lease is worth.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+
+    st.subheader("Ready to Cash Out?")
+    location_label = selected_ward if selected_ward else "your area"
+    st.info(f"**High Demand Alert:** We currently have corporate buyers looking "
+            f"for **{property_type}** apartments in **{location_label}**.")
+
+    if not unlocked:
+        with st.form("lead_capture_form"):
+            st.markdown("Enter your details to reveal your valuation and match with a buyer.")
+            user_email = st.text_input("Your Email Address: *")
+            user_linkedin = st.text_input(
+                "LinkedIn Profile URL (optional):",
+                placeholder="https://www.linkedin.com/in/your-name")
+            consent = st.checkbox("I agree to be contacted by HAYA about my valuation. *")
+            submitted = st.form_submit_button("👉 Reveal My Valuation")
+
+            if submitted:
+                if not selected_ward:
+                    st.error("Please select your ward first (map or list). 👆")
+                elif "@" not in user_email or "." not in user_email:
+                    st.error("Please enter a valid email address.")
+                elif not consent:
+                    st.error("Please tick the consent box so we can contact you.")
+                else:
+                    # Only attach map coordinates if they match the chosen ward
+                    if st.session_state.get("_coord_ward") == selected_ward:
+                        lat = st.session_state.get("clicked_lat", "")
+                        lng = st.session_state.get("clicked_lng", "")
+                    else:
+                        lat, lng = "", ""
+                    codes = ward_lookup.get(selected_ward, {})
+                    try:
+                        save_lead([
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            user_email,
+                            user_linkedin.strip(),
+                            selected_ward,
+                            codes.get("ward_code"),
+                            codes.get("lga_code"),
+                            lat,
+                            lng,
+                            property_type,
+                            round(results["realizable_value"]),
+                        ])
+                        st.session_state["unlocked"] = True
+                        st.rerun()
+                    except Exception as e:
+                        st.error("Something went wrong saving your details. Please try again.")
+                        st.caption(f"Debug: {e}")
+    else:
+        st.success("✅ Valuation unlocked! Our concierge team will reach out within 24 hours.")
+        st.caption("Tip: adjust the sliders on the left to explore different scenarios.")
 
     st.divider()
 
