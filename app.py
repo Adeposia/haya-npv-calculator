@@ -285,33 +285,6 @@ with col2:
 
 
 
-        if submitted:
-            if not selected_ward:
-                st.error("Please click your ward on the map first. 👆")
-            elif "@" not in user_email or "." not in user_email:
-                st.error("Please enter a valid email address.")
-            elif not consent:
-                st.error("Please tick the consent box so we can contact you.")
-            else:
-                try:
-                    save_lead([
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        user_email,
-                        selected_ward,
-                        st.session_state.get("selected_ward_code"),
-                        st.session_state.get("selected_lga"),
-                        st.session_state.get("clicked_lat"),
-                        st.session_state.get("clicked_lng"),
-                        property_type,
-                        round(results["realizable_value"]),
-                    ])
-                    st.success("Success! Our concierge team will email you within 24 hours.")
-                    st.balloons()
-                except Exception as e:
-                    st.error("Something went wrong saving your details. Please try again.")
-                    # For your eyes during setup — remove later if you like:
-                    st.caption(f"Debug: {e}")
-
 # ============================================================
 # ADMIN PANEL (now password-protected)
 # ============================================================
