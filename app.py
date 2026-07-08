@@ -290,10 +290,7 @@ with col2:
 
     st.divider()
 
-    st.subheader("Ready to Cash Out?")
-    location_label = selected_ward if selected_ward else "your area"
-    st.info(f"**High Demand Alert:** We currently have corporate buyers looking "
-            f"for **{property_type}** apartments in **{location_label}**.")
+    
 
 
 
