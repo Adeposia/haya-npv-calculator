@@ -189,6 +189,11 @@ with col1:
     months_left = st.number_input("Months left on your lease:", min_value=1, max_value=24, value=6)
     current_rent_annual = st.number_input("Current annual rent for similar units (₦):",
         min_value=100000, value=3000000, step=100000)
+    fixture_value = st.number_input(
+        "Estimated Value of Custom Fixtures to leave behind (₦):", 
+        min_value=0, value=0, step=50000,
+        help="Optional: Value of items like AC units, generators, solar/inverters, or custom furniture."
+    )
 
     with st.expander("⚙️ Advanced Economic Adjustments"):
         growth_rate_annual = st.slider("Expected Annual Rent Growth / Inflation (%)", 0.0, 50.0, 25.0)
@@ -202,11 +207,16 @@ with col2:
 
     unlocked = st.session_state.get("unlocked", False)
 
+    total_cashout = results['realizable_value'] + fixture_value
+
     if unlocked:
-        st.metric(label="Total Realizable Value (After Fees)",
-                  value=f"₦ {results['realizable_value']:,.0f}")
-        st.markdown(f"**Gross Market Value:** ₦ {results['gross_pv']:,.0f}  |  "
-                    f"**Friction Fees:** – ₦ {results['friction_cost']:,.0f}")
+        st.metric(label="Total Potential Cash-Out Value",
+                  value=f"₦ {total_cashout:,.0f}")
+        st.success(
+            f"**Realizable Rent Value:** ₦ {results['realizable_value']:,.0f} \n\n"
+            f"**Recoverable Fixture Value:** ₦ {fixture_value:,.0f}"
+        )
+        st.caption(f"*(Rent breakdown: Gross Market Value ₦ {results['gross_pv']:,.0f} | HAYA Friction Fees: – ₦ {results['friction_cost']:,.0f})*")
     else:
         # Locked teaser — the number stays hidden until we capture an email
         st.markdown(f"""
@@ -266,6 +276,8 @@ with col2:
                             lng,
                             property_type,
                             round(results["realizable_value"]),
+                            int(fixture_value),
+                            round(total_cashout)
                         ])
                         st.session_state["unlocked"] = True
                         st.rerun()
