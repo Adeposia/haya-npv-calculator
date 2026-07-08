@@ -283,11 +283,7 @@ with col2:
     st.info(f"**High Demand Alert:** We currently have corporate buyers looking "
             f"for **{property_type}** apartments in **{location_label}**.")
 
-    with st.form("lead_capture_form"):
-        st.markdown("Enter your email to match with a buyer and lock in your valuation.")
-        user_email = st.text_input("Your Email Address:")
-        consent = st.checkbox("I agree to be contacted by HAYA about my valuation.")
-        submitted = st.form_submit_button("👉 Secure My Match")
+
 
         if submitted:
             if not selected_ward:
